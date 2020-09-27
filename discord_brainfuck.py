@@ -1,5 +1,5 @@
 import sys
-
+import re
 help = "python3 discord_brainfuck.py [dbf_code_file_here] [bot token file]"
 
 if len(sys.argv) != 3:
@@ -12,6 +12,27 @@ f.close()
 
 cells = [0]
 current_cell = 0
+
+def match_bracket(text: str,left_br: str,right_br: str,start: int):
+  top = 0
+  pos = start
+  pattern = f"[{left_br}{right_br}]"
+  remaining_string = text[start:len(text)]
+  next_match = re.search(pattern,remaining_string)
+  while next_match:
+    pos+=next_match.span()[1]
+    if re.search(left_br,next_match.group()):
+      top+=1
+    elif re.search(right_br,next_match.group()):
+      top-=1
+    if top==0:
+      break
+    remaining_string = remaining_string[next_match.span()[1]:len(remaining_string)+1]
+    next_match = re.search(pattern,remaining_string)
+  if next_match:
+    return pos-1
+  else:
+    raise Exception(f"No closing bracket found for bracket at {start}")
 
 def insert_to_cell(cell: int, value: int):
     if cell > len(cells):
@@ -29,10 +50,18 @@ def get_from_cell(cell: int):
         return 0
 
 def increment_cell_value(cell: int):
-    insert_to_cell(cell, get_from_cell(cell)+1)
+    cur_cell = get_from_cell(cell)
+    if cur_cell > 255:
+        insert_to_cell(cell, 0)
+    else:
+        insert_to_cell(cell, cur_cell+1)
 
 def decrement_cell_value(cell: int):
-    insert_to_cell(cell, get_from_cell(cell)-1)
+    cur_cell = get_from_cell(cell)
+    if cur_cell > 255:
+        insert_to_cell(cell, 0)
+    else:
+        insert_to_cell(cell, cur_cell-1)
 
 def print_cells():
     to_print = ""
@@ -41,7 +70,6 @@ def print_cells():
     print(to_print)
 
 commands = []
-loops = []
 
 index = 0
 def interpret(code: str, index: int):
@@ -57,13 +85,15 @@ def interpret(code: str, index: int):
         elif char == "-":
             decrement_cell_value(current_cell)
         elif char == "[":
-            loops.insert(0, index+1)
+            current_cell_value = get_from_cell(current_cell)
+            if current_cell_value == 0:
+                index = match_bracket(code,"\[","\]",index)
         elif char == "]":
-            if get_from_cell(current_cell) > 0:
-                index = loops[0]
-                continue
-            else:
-                loops.remove(loops[0])
+            current_cell_value = get_from_cell(current_cell)
+            if current_cell_value != 0:
+                reversed_code = code[::-1]
+                #this looks disgusting only due to weird inversion tricks and off by one errors
+                index = len(code)-(match_bracket(reversed_code,"\]","\[",len(code)-index-1)+1)
         elif char == ",":
             insert_to_cell(current_cell, ord(input("")[0]))
         elif char == "$":
@@ -78,7 +108,6 @@ def interpret(code: str, index: int):
 
 interpret(all_code, 0)
 #print(commands)
-
 for command in commands:
     print(f"Added command {command['trigger']}")
 
