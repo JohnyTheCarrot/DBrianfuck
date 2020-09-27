@@ -10,7 +10,7 @@ f = open(sys.argv[1], 'r')
 all_code = f.read()
 f.close()
 
-cells = [0]
+cells = {0:0}
 current_cell = 0
 
 def match_bracket(text: str,left_br: str,right_br: str,start: int):
@@ -35,18 +35,12 @@ def match_bracket(text: str,left_br: str,right_br: str,start: int):
     raise Exception(f"No closing bracket found for bracket at {start}")
 
 def insert_to_cell(cell: int, value: int):
-    if cell > len(cells):
-        for c in range(len(cells)-cell):
-            cells.append(0)
-    try:
-        cells[cell] = value
-    except:
-        cells.append(value)
+    cells[cell] = value
 
 def get_from_cell(cell: int):
     try:
         return cells[cell]
-    except IndexError:
+    except Exception:
         return 0
 
 def increment_cell_value(cell: int):
@@ -58,8 +52,8 @@ def increment_cell_value(cell: int):
 
 def decrement_cell_value(cell: int):
     cur_cell = get_from_cell(cell)
-    if cur_cell > 255:
-        insert_to_cell(cell, 0)
+    if cur_cell == 0:
+        insert_to_cell(cell, 255)
     else:
         insert_to_cell(cell, cur_cell-1)
 
